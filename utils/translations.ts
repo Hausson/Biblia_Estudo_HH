@@ -26,6 +26,9 @@ export const translations = {
     writeNotePlaceholder: 'Write your notes, references, and thoughts here...',
     folder: 'folder',
     reference: 'reference',
+    version: 'Version',
+    commentary: 'Commentary',
+    noCommentary: 'No Commentary',
   },
   pt: {
     appTitle: 'Companheiro de Estudos Bíblicos',
@@ -51,6 +54,9 @@ export const translations = {
     writeNotePlaceholder: 'Escreva suas notas, referências e pensamentos aqui...',
     folder: 'pasta',
     reference: 'referência',
+    version: 'Versão',
+    commentary: 'Comentário',
+    noCommentary: 'Sem Comentário',
   }
 };
 

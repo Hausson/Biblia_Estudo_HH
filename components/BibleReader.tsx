@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { getChapter } from '../services/bibleService';
+import { fetchChapter } from '../services/bibleService';
+import { getCommentaryForChapter } from '../services/commentaryService';
 import { Verse, Chapter, StudyNode } from '../types';
 import InsightModal from './InsightModal';
 import { SparklesIcon, BookOpenIcon, FileIcon } from './Icons';
@@ -33,27 +34,65 @@ const updateNodeContent = (nodes: StudyNode[], nodeId: string, newContent: strin
 
 const BibleReader: React.FC<BibleReaderProps> = ({ selectedChapter, selectedStudyNode, setStudyData }) => {
   const [chapterData, setChapterData] = useState<(Chapter & { bookName: string }) | null>(null);
+  const [commentaryData, setCommentaryData] = useState<{ [verse: number]: string }>({});
   const [verseForInsight, setVerseForInsight] = useState<Verse | null>(null);
   const [editableContent, setEditableContent] = useState<string>('');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  
   const { t } = useLanguage();
-  const { currentVersionId } = useBible();
+  const { currentVersionId, currentCommentaryId } = useBible();
   
   // Refs for scrolling
   const verseRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
 
+  // Load Bible Text (Async)
   useEffect(() => {
-    if (selectedChapter) {
-      const data = getChapter(currentVersionId, selectedChapter.bookId, selectedChapter.chapter);
-      setChapterData(data);
-    }
+    let isMounted = true;
+
+    const loadData = async () => {
+        if (selectedChapter) {
+            setIsLoading(true);
+            setError(null);
+            try {
+                const data = await fetchChapter(currentVersionId, selectedChapter.bookId, selectedChapter.chapter);
+                if (isMounted) {
+                    if (data) {
+                        setChapterData(data);
+                    } else {
+                        setError("Chapter not found or data file missing in /public/bibles/");
+                    }
+                }
+            } catch (err) {
+                if (isMounted) setError("Failed to load chapter.");
+            } finally {
+                if (isMounted) setIsLoading(false);
+            }
+        }
+    };
+
+    loadData();
+    
+    return () => { isMounted = false; };
   }, [selectedChapter?.bookId, selectedChapter?.chapter, currentVersionId]); 
+
+  // Load Commentary Text
+  useEffect(() => {
+      if (selectedChapter) {
+          // If commentaries also move to JSON later, make this async too
+          const data = getCommentaryForChapter(currentCommentaryId, selectedChapter.bookId, selectedChapter.chapter);
+          setCommentaryData(data);
+      } else {
+          setCommentaryData({});
+      }
+  }, [selectedChapter?.bookId, selectedChapter?.chapter, currentCommentaryId]);
   
   // Scroll to verse when selectedChapter.verse changes
   useEffect(() => {
-      if (selectedChapter?.verse && verseRefs.current[selectedChapter.verse]) {
+      if (selectedChapter?.verse && verseRefs.current[selectedChapter.verse] && !isLoading) {
           verseRefs.current[selectedChapter.verse]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
-  }, [selectedChapter?.verse, chapterData]); 
+  }, [selectedChapter?.verse, chapterData, isLoading]); 
 
   useEffect(() => {
     if (selectedStudyNode && selectedStudyNode.type === 'reference') {
@@ -99,6 +138,25 @@ const BibleReader: React.FC<BibleReaderProps> = ({ selectedChapter, selectedStud
       );
   }
 
+  if (isLoading) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-center text-gray-500 dark:text-gray-400">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
+          <p>{t('loading')}</p>
+        </div>
+      );
+  }
+
+  if (error) {
+      return (
+          <div className="flex flex-col items-center justify-center h-full text-center text-red-500 p-4">
+            <p className="text-lg font-bold mb-2">Error</p>
+            <p>{error}</p>
+            <p className="text-sm text-gray-500 mt-4">Make sure the file exists in: public/bibles/</p>
+          </div>
+      );
+  }
+
   if (!chapterData) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50">
@@ -115,23 +173,34 @@ const BibleReader: React.FC<BibleReaderProps> = ({ selectedChapter, selectedStud
       <div className="space-y-4">
         {chapterData.verses.map(verse => {
             const isSelected = selectedChapter?.verse === verse.verse;
+            const commentary = commentaryData[verse.verse];
+
             return (
                 <div 
                     key={verse.verse} 
                     ref={el => { verseRefs.current[verse.verse] = el }}
-                    className={`flex group items-start gap-4 p-2 rounded-lg transition-all duration-500 ${isSelected ? 'bg-yellow-100 dark:bg-yellow-900/30 ring-2 ring-yellow-400 dark:ring-yellow-600' : 'hover:bg-gray-100 dark:hover:bg-gray-800/50'}`}
+                    className={`flex flex-col gap-2 p-2 rounded-lg transition-all duration-500 ${isSelected ? 'bg-yellow-100 dark:bg-yellow-900/30 ring-2 ring-yellow-400 dark:ring-yellow-600' : 'hover:bg-gray-100 dark:hover:bg-gray-800/50'}`}
                 >
-                    <sup className={`w-8 text-right font-bold mt-1 ${isSelected ? 'text-yellow-700 dark:text-yellow-500' : 'text-gray-500 dark:text-gray-400'}`}>{verse.verse}</sup>
-                    <p className={`flex-1 text-base md:text-lg leading-relaxed ${isSelected ? 'text-gray-900 dark:text-gray-100 font-medium' : 'text-gray-700 dark:text-gray-300'}`}>
-                    {verse.text}
-                    </p>
-                    <button
-                    onClick={() => handleGetInsight(verse)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-800"
-                    title="Get AI Insight"
-                    >
-                    <SparklesIcon />
-                    </button>
+                    <div className="flex group items-start gap-4">
+                        <sup className={`w-8 text-right font-bold mt-1 ${isSelected ? 'text-yellow-700 dark:text-yellow-500' : 'text-gray-500 dark:text-gray-400'}`}>{verse.verse}</sup>
+                        <p className={`flex-1 text-base md:text-lg leading-relaxed ${isSelected ? 'text-gray-900 dark:text-gray-100 font-medium' : 'text-gray-700 dark:text-gray-300'}`}>
+                        {verse.text}
+                        </p>
+                        <button
+                        onClick={() => handleGetInsight(verse)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-800"
+                        title="Get AI Insight"
+                        >
+                        <SparklesIcon />
+                        </button>
+                    </div>
+                    
+                    {commentary && (
+                         <div className="ml-12 p-3 rounded bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400 dark:border-blue-600 text-sm text-gray-700 dark:text-gray-300 italic">
+                            <span className="font-bold text-blue-600 dark:text-blue-400 text-xs uppercase block mb-1">{t('commentary')}</span>
+                            {commentary}
+                         </div>
+                    )}
                 </div>
             );
         })}

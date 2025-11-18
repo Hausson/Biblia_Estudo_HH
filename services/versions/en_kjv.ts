@@ -13,9 +13,11 @@ export const en_kjv: BibleVersion = {
         {
           chapter: 1,
           verses: [
-            { verse: 1, text: "In the beginning God created the heavens and the earth." },
-            { verse: 2, text: "Now the earth was formless and empty, darkness was over the surface of the deep, and the Spirit of God was hovering over the waters." },
-            { verse: 3, text: "And God said, “Let there be light,” and there was light." }
+            { verse: 1, text: "No principio criou Deus o ceu e a terra." },
+            { verse: 2, text: "E a terra era sem forma e vazia; e havia trevas sobre a face do abismo. E o Espirito de Deus se movia sobre a face das aguas." },
+            { verse: 3, text: "E disse Deus: Haja luz; e houve luz." },
+            { verse: 4, text: "E viu Deus a luz, que isto era bom; e Deus separou a luz das trevas." },
+            { verse: 5, text: "E chamou Deus a luz Dia, e as trevas ele chamou Noite. E houve a tarde e a manha, o primeiro dia."}
           ]
         },
         {

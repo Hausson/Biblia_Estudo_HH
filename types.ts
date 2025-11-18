@@ -29,7 +29,7 @@ export interface Chapter {
 
 export interface BibleBook {
   id: string;
-  name: string; // O nome já virá traduzido no arquivo da versão específica
+  name: string;
   chapters: Chapter[];
 }
 
@@ -38,4 +38,27 @@ export interface BibleVersion {
   name: string;
   language: Language;
   books: BibleBook[];
+}
+
+// Commentary Types
+export interface CommentaryVerse {
+    verse: number;
+    text: string;
+}
+
+export interface CommentaryChapter {
+    chapter: number;
+    verses: CommentaryVerse[];
+}
+
+export interface CommentaryBook {
+    id: string;
+    chapters: CommentaryChapter[];
+}
+
+export interface Commentary {
+    id: string;
+    name: string;
+    language: Language;
+    books: CommentaryBook[];
 }
