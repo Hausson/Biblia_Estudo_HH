@@ -29,7 +29,7 @@ const STATIC_VERSIONS: { [key: string]: BibleVersion } = {
 };
 
 // Cache in-memory to prevent constant re-fetching
-const versionCache: { [key: string]: any[] } = {};
+const versionCache: { [key: string]: any } = {};
 
 export const getBibleVersionMeta = (versionId: string): AvailableVersion => {
     return AVAILABLE_VERSIONS.find(v => v.id === versionId) || AVAILABLE_VERSIONS[0];
@@ -58,17 +58,7 @@ export const fetchChapter = async (versionId: string, bookId: string, chapterNum
                 throw new Error(`Network response was not ok: ${response.statusText}`);
             }
             
-            let data = await response.json();
-            
-            // Normalize data: handle if it's an array of books OR a BibleVersion object
-            if (!Array.isArray(data) && data.books) {
-                data = data.books;
-            } else if (!Array.isArray(data)) {
-                // If it's an object but not in expected format, try to use it if it looks like a book array
-                // or throw to trigger fallback
-                 throw new Error('Invalid JSON format');
-            }
-
+            const data = await response.json();
             versionCache[versionId] = data;
         } catch (error) {
             console.warn(`Could not load remote JSON for ${versionId} (${error}). Falling back to static data.`);
@@ -86,17 +76,67 @@ export const fetchChapter = async (versionId: string, bookId: string, chapterNum
     const bibleData = versionCache[versionId];
     if (!bibleData) return null;
 
-    // Assuming the JSON structure matches the internal BibleBook type
-    const book = bibleData.find((b: any) => b.id === bookId);
-    
-    if (!book) return null;
-    
-    const chapter = book.chapters.find((c: any) => c.chapter === chapterNumber);
-    
-    // Fallback for bookname if not in JSON, use structure
-    const bookName = book.name || getBookName(bookId, versionMeta.language);
+    // --- DETECT FORMAT AND PARSE ---
 
-    return chapter ? { bookName: bookName, ...chapter } : null;
+    // 1. Check for User's specific JSON format: Array of objects with 'abbrev', 'chapters' as string[][]
+    // Example: [{"abbrev":"Gn", "chapters":[["In the beginning..."], ...]}, ...]
+    if (Array.isArray(bibleData) && bibleData.length > 0 && 'abbrev' in bibleData[0] && Array.isArray(bibleData[0].chapters)) {
+        // Map internal bookId (e.g., 'gen') to index in the JSON array based on standard order
+        const bookIndex = BIBLE_STRUCTURE.findIndex(b => b.id === bookId);
+        
+        if (bookIndex === -1 || bookIndex >= bibleData.length) {
+            console.error(`Book ${bookId} not found in JSON at index ${bookIndex}`);
+            return null;
+        }
+
+        const bookRaw = bibleData[bookIndex];
+        
+        // Safety check if raw chapters exist
+        if (!bookRaw.chapters || !Array.isArray(bookRaw.chapters)) return null;
+
+        // JSON chapters are 0-indexed array of arrays. chapterNumber is 1-based.
+        if (chapterNumber <= 0 || chapterNumber > bookRaw.chapters.length) return null;
+
+        const versesRaw = bookRaw.chapters[chapterNumber - 1]; // This is an array of strings ["Verse 1 text", "Verse 2 text"]
+
+        if (!Array.isArray(versesRaw)) return null;
+
+        const verses = versesRaw.map((text: string, index: number) => ({
+            verse: index + 1,
+            text: text
+        }));
+
+        return {
+            chapter: chapterNumber,
+            verses: verses,
+            bookName: bookRaw.name || getBookName(bookId, versionMeta.language)
+        };
+    }
+
+    // 2. Default/Internal Format: Array of BibleBook objects with 'id' and 'chapters' as objects
+    // Example: [{ id: "gen", chapters: [{ chapter: 1, verses: [...] }] }]
+    if (Array.isArray(bibleData)) {
+        const book = bibleData.find((b: any) => b.id === bookId);
+        if (!book) return null;
+        
+        const chapter = book.chapters.find((c: any) => c.chapter === chapterNumber);
+        const bookName = book.name || getBookName(bookId, versionMeta.language);
+    
+        return chapter ? { bookName: bookName, ...chapter } : null;
+    }
+    
+    // 3. Object Format: { books: [...] }
+    if (bibleData.books && Array.isArray(bibleData.books)) {
+         const book = bibleData.books.find((b: any) => b.id === bookId);
+         if (!book) return null;
+         
+         const chapter = book.chapters.find((c: any) => c.chapter === chapterNumber);
+         const bookName = book.name || getBookName(bookId, versionMeta.language);
+         
+         return chapter ? { bookName: bookName, ...chapter } : null;
+    }
+
+    return null;
 };
 
 export const getVerseCount = (bookId: string, chapterNumber: number): number => {
