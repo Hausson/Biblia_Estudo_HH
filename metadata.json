@@ -1,0 +1,5 @@
+{
+  "name": "Bíblia de Estudo ",
+  "description": "An application for reading the Bible and organizing study notes in a structured tree-view format. Users can create topics, sub-folders, and add notes with Bible references. It also includes an AI-powered feature to get insights on verses.",
+  "requestFramePermissions": []
+}

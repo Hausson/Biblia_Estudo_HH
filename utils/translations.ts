@@ -1,0 +1,59 @@
+
+import { Language } from '../types';
+
+export const translations = {
+  en: {
+    appTitle: 'Bible Study Companion',
+    bible: 'The Bible',
+    studies: 'My Studies',
+    chapters: 'Chapters',
+    verses: 'Verses',
+    newTopic: 'New Topic',
+    noStudies: 'No studies yet.',
+    clickToStart: 'Click "New Topic" to start.',
+    enterName: 'Enter the name for the new',
+    confirmDelete: 'Are you sure you want to delete this item and all its contents?',
+    saveNote: 'Save Note',
+    noteSaved: 'Note saved!',
+    selectChapter: 'Select a chapter to begin reading.',
+    verseInsight: 'Verse Insight',
+    loading: 'Loading insights...',
+    failedToFetch: 'Failed to fetch insights.',
+    settings: 'Settings',
+    language: 'Language',
+    selectLanguage: 'Select Language',
+    close: 'Close',
+    writeNotePlaceholder: 'Write your notes, references, and thoughts here...',
+    folder: 'folder',
+    reference: 'reference',
+  },
+  pt: {
+    appTitle: 'Companheiro de Estudos Bíblicos',
+    bible: 'A Bíblia',
+    studies: 'Meus Estudos',
+    chapters: 'Capítulos',
+    verses: 'Versículos',
+    newTopic: 'Novo Tópico',
+    noStudies: 'Nenhum estudo ainda.',
+    clickToStart: 'Clique em "Novo Tópico" para começar.',
+    enterName: 'Digite o nome para o novo',
+    confirmDelete: 'Tem certeza que deseja excluir este item e todo o seu conteúdo?',
+    saveNote: 'Salvar Nota',
+    noteSaved: 'Nota salva!',
+    selectChapter: 'Selecione um capítulo para começar a ler.',
+    verseInsight: 'Insight do Versículo',
+    loading: 'Carregando insights...',
+    failedToFetch: 'Falha ao buscar insights.',
+    settings: 'Configurações',
+    language: 'Idioma',
+    selectLanguage: 'Selecione o Idioma',
+    close: 'Fechar',
+    writeNotePlaceholder: 'Escreva suas notas, referências e pensamentos aqui...',
+    folder: 'pasta',
+    reference: 'referência',
+  }
+};
+
+export const getTranslation = (lang: Language, key: keyof typeof translations['en']) => {
+  return translations[lang][key];
+};
