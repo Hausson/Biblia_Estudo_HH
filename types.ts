@@ -29,7 +29,13 @@ export interface Chapter {
 
 export interface BibleBook {
   id: string;
-  name: string;
-  namePt: string;
+  name: string; // O nome já virá traduzido no arquivo da versão específica
   chapters: Chapter[];
+}
+
+export interface BibleVersion {
+  id: string;
+  name: string;
+  language: Language;
+  books: BibleBook[];
 }

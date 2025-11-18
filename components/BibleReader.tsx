@@ -5,6 +5,7 @@ import { Verse, Chapter, StudyNode } from '../types';
 import InsightModal from './InsightModal';
 import { SparklesIcon, BookOpenIcon, FileIcon } from './Icons';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useBible } from '../contexts/BibleContext';
 
 interface BibleReaderProps {
   selectedChapter: { bookId: string, chapter: number, verse?: number } | null;
@@ -31,27 +32,28 @@ const updateNodeContent = (nodes: StudyNode[], nodeId: string, newContent: strin
 };
 
 const BibleReader: React.FC<BibleReaderProps> = ({ selectedChapter, selectedStudyNode, setStudyData }) => {
-  const [chapterData, setChapterData] = useState<(Chapter & { bookName: string, bookNamePt: string }) | null>(null);
+  const [chapterData, setChapterData] = useState<(Chapter & { bookName: string }) | null>(null);
   const [verseForInsight, setVerseForInsight] = useState<Verse | null>(null);
   const [editableContent, setEditableContent] = useState<string>('');
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
+  const { currentVersionId } = useBible();
   
   // Refs for scrolling
   const verseRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
 
   useEffect(() => {
     if (selectedChapter) {
-      const data = getChapter(selectedChapter.bookId, selectedChapter.chapter);
+      const data = getChapter(currentVersionId, selectedChapter.bookId, selectedChapter.chapter);
       setChapterData(data);
     }
-  }, [selectedChapter?.bookId, selectedChapter?.chapter]); // Only re-fetch if book or chapter changes
+  }, [selectedChapter?.bookId, selectedChapter?.chapter, currentVersionId]); 
   
   // Scroll to verse when selectedChapter.verse changes
   useEffect(() => {
       if (selectedChapter?.verse && verseRefs.current[selectedChapter.verse]) {
           verseRefs.current[selectedChapter.verse]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
-  }, [selectedChapter?.verse, chapterData]); // Run when verse changes or data loads
+  }, [selectedChapter?.verse, chapterData]); 
 
   useEffect(() => {
     if (selectedStudyNode && selectedStudyNode.type === 'reference') {
@@ -106,11 +108,9 @@ const BibleReader: React.FC<BibleReaderProps> = ({ selectedChapter, selectedStud
     );
   }
 
-  const displayBookName = language === 'pt' ? chapterData.bookNamePt : chapterData.bookName;
-
   return (
     <div className="p-6 md:p-8 h-full overflow-y-auto">
-      <h1 className="text-3xl md:text-4xl font-bold text-gray-800 dark:text-gray-100 mb-2">{displayBookName}</h1>
+      <h1 className="text-3xl md:text-4xl font-bold text-gray-800 dark:text-gray-100 mb-2">{chapterData.bookName}</h1>
       <h2 className="text-2xl md:text-3xl font-semibold text-gray-600 dark:text-gray-400 mb-8">{t('chapters')} {chapterData.chapter}</h2>
       <div className="space-y-4">
         {chapterData.verses.map(verse => {
@@ -139,7 +139,7 @@ const BibleReader: React.FC<BibleReaderProps> = ({ selectedChapter, selectedStud
       {verseForInsight && chapterData && (
         <InsightModal
           verse={verseForInsight}
-          bookName={displayBookName}
+          bookName={chapterData.bookName}
           chapterNumber={chapterData.chapter}
           onClose={() => setVerseForInsight(null)}
         />

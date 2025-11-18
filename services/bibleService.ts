@@ -1,67 +1,40 @@
 
-import { BibleBook } from '../types';
+import { BibleVersion, BibleBook } from '../types';
+import { en_kjv } from './versions/en_kjv';
+import { pt_aa } from './versions/pt_aa';
 
-const BIBLE_DATA: BibleBook[] = [
-  {
-    id: 'gen',
-    name: 'Genesis',
-    namePt: 'Gênesis',
-    chapters: [
-      {
-        chapter: 1,
-        verses: [
-          { verse: 1, text: 'In the beginning God created the heavens and the earth.' },
-          { verse: 2, text: 'Now the earth was formless and empty, darkness was over the surface of the deep, and the Spirit of God was hovering over the waters.' },
-          { verse: 3, text: 'And God said, “Let there be light,” and there was light.' },
-          { verse: 4, text: 'God saw that the light was good, and he separated the light from the darkness.' },
-          { verse: 5, text: 'God called the light “day,” and the darkness he called “night.” And there was evening, and there was morning—the first day.' },
-        ],
-      },
-      {
-        chapter: 2,
-        verses: [
-          { verse: 1, text: 'Thus the heavens and the earth were completed in all their vast array.' },
-          { verse: 2, text: 'By the seventh day God had finished the work he had been doing; so on the seventh day he rested from all his work.' },
-          { verse: 3, text: 'Then God blessed the seventh day and made it holy, because on it he rested from all the work of creating that he had done.' },
-        ],
-      },
-    ],
-  },
-  {
-    id: 'exod',
-    name: 'Exodus',
-    namePt: 'Êxodo',
-    chapters: [
-      {
-        chapter: 1,
-        verses: [
-          { verse: 1, text: 'These are the names of the sons of Israel who went to Egypt with Jacob, each with his family:' },
-          { verse: 2, text: 'Reuben, Simeon, Levi and Judah;' },
-          { verse: 3, text: 'Issachar, Zebulun and Benjamin;' },
-        ],
-      },
-    ],
-  },
+// Registro de versões disponíveis
+export const AVAILABLE_VERSIONS: BibleVersion[] = [
+    pt_aa,
+    en_kjv
 ];
 
-export const getBooks = (): { id: string, name: string, namePt: string, chapterCount: number }[] => {
-  return BIBLE_DATA.map(book => ({
+// Função auxiliar para pegar a versão ativa
+export const getBibleVersion = (versionId: string): BibleVersion => {
+    return AVAILABLE_VERSIONS.find(v => v.id === versionId) || AVAILABLE_VERSIONS[0];
+};
+
+export const getBooks = (versionId: string): { id: string, name: string, chapterCount: number }[] => {
+  const version = getBibleVersion(versionId);
+  return version.books.map(book => ({
     id: book.id,
     name: book.name,
-    namePt: book.namePt,
     chapterCount: book.chapters.length,
   }));
 };
 
-export const getChapter = (bookId: string, chapterNumber: number) => {
-  const book = BIBLE_DATA.find(b => b.id === bookId);
+export const getChapter = (versionId: string, bookId: string, chapterNumber: number) => {
+  const version = getBibleVersion(versionId);
+  const book = version.books.find(b => b.id === bookId);
   if (!book) return null;
+  
   const chapter = book.chapters.find(c => c.chapter === chapterNumber);
-  return chapter ? { bookName: book.name, bookNamePt: book.namePt, ...chapter } : null;
+  return chapter ? { bookName: book.name, ...chapter } : null;
 };
 
-export const getVerseCount = (bookId: string, chapterNumber: number): number => {
-    const book = BIBLE_DATA.find(b => b.id === bookId);
+export const getVerseCount = (versionId: string, bookId: string, chapterNumber: number): number => {
+    const version = getBibleVersion(versionId);
+    const book = version.books.find(b => b.id === bookId);
     if (!book) return 0;
     const chapter = book.chapters.find(c => c.chapter === chapterNumber);
     return chapter ? chapter.verses.length : 0;

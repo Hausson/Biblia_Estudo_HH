@@ -1,8 +1,9 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { getBooks, getVerseCount } from '../services/bibleService';
 import { ChevronRightIcon } from './Icons';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useBible } from '../contexts/BibleContext';
 
 interface BibleNavProps {
   onSelectChapter: (bookId: string, chapter: number) => void;
@@ -10,13 +11,14 @@ interface BibleNavProps {
   selectedChapter: { bookId: string; chapter: number; verse?: number } | null;
 }
 
-const books = getBooks();
-
 const BibleNav: React.FC<BibleNavProps> = ({ onSelectChapter, onSelectVerse, selectedChapter }) => {
+  const { currentVersionId } = useBible();
+  const { t } = useLanguage();
+  
+  const books = useMemo(() => getBooks(currentVersionId), [currentVersionId]);
+
   const [openBook, setOpenBook] = useState<string | null>(selectedChapter?.bookId || books[0]?.id || null);
-  // Track which chapter is currently expanded to show verses in the nav
   const [expandedChapter, setExpandedChapter] = useState<number | null>(selectedChapter?.chapter || null);
-  const { t, language } = useLanguage();
 
   useEffect(() => {
     if (selectedChapter) {
@@ -30,7 +32,7 @@ const BibleNav: React.FC<BibleNavProps> = ({ onSelectChapter, onSelectVerse, sel
         setOpenBook(null);
     } else {
         setOpenBook(bookId);
-        setExpandedChapter(null); // Reset verse view when changing books
+        setExpandedChapter(null);
     }
   };
 
@@ -49,7 +51,7 @@ const BibleNav: React.FC<BibleNavProps> = ({ onSelectChapter, onSelectVerse, sel
               onClick={() => toggleBook(book.id)}
               className="w-full flex justify-between items-center text-left p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <span className="font-semibold">{language === 'pt' ? book.namePt : book.name}</span>
+              <span className="font-semibold">{book.name}</span>
               <ChevronRightIcon isRotated={openBook === book.id} />
             </button>
             {openBook === book.id && (
@@ -75,7 +77,7 @@ const BibleNav: React.FC<BibleNavProps> = ({ onSelectChapter, onSelectVerse, sel
                     <div className="border-t border-gray-200 dark:border-gray-600 pt-2 animate-fade-in">
                         <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 uppercase font-bold">{t('verses')}</p>
                         <div className="grid grid-cols-5 gap-1">
-                            {Array.from({ length: getVerseCount(book.id, expandedChapter) }, (_, i) => i + 1).map(verse => (
+                            {Array.from({ length: getVerseCount(currentVersionId, book.id, expandedChapter) }, (_, i) => i + 1).map(verse => (
                                 <button
                                     key={verse}
                                     onClick={() => onSelectVerse(book.id, expandedChapter, verse)}
